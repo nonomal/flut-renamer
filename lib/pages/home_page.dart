@@ -9,6 +9,7 @@ import '../entity/sharedpref.dart';
 import '../l10n/l10n.dart';
 import '../rules/rule.dart';
 import '../tools/file_metadata.dart';
+import '../tools/logger.dart';
 import '../tools/responsive.dart';
 import '../widget/custom_dialog.dart';
 import 'rules_page.dart';
@@ -37,6 +38,10 @@ class HomePage extends StatelessWidget {
           }
         }
       },
+      dependsOnFileOrder: () => (rulesKey.currentState?.rules ?? [])
+          .any((rule) => rule is RuleIncrement),
+      requiresMetadata: () => (rulesKey.currentState?.rules ?? [])
+          .any((rule) => rule.requiresMetadata),
       clearRules: () {
         rulesKey.currentState?.clearRule();
       },
@@ -178,7 +183,11 @@ class _HomeToolBarState extends State<HomeToolBar> {
                     style: TextStyle(color: Colors.blue),
                   ),
                   onTap: () {
-                    launchUrl(Uri.parse('https://github.com/sun-jiao/renamer/issues/new'));
+                    launchUrl(
+                      Uri.parse(
+                        'https://github.com/sun-jiao/renamer/issues/new',
+                      ),
+                    );
                   },
                 ),
               ],
@@ -191,6 +200,49 @@ class _HomeToolBarState extends State<HomeToolBar> {
           onPressed: ratingMyApp,
         ),
         IconButton(
+          tooltip: L10n.current.viewLog,
+          icon: const Icon(Icons.history_rounded),
+          onPressed: () async {
+            final logs = await Logger().readLogs();
+            if (!mounted) return;
+            showDialog(
+              context: context,
+              builder: (context) => CustomDialog(
+                title: Text(L10n.current.viewLog),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: SelectionArea(
+                    child: SingleChildScrollView(
+                      child: Text(
+                        logs.isEmpty ? L10n.current.logEmpty : logs,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                actions: [
+                  IconButton(
+                    tooltip:
+                        MaterialLocalizations.of(context).deleteButtonTooltip,
+                    onPressed: () async {
+                      await Logger().clearLogs();
+                      if (context.mounted) Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(L10n.current.ok),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        IconButton(
           tooltip: L10n.current.sourceCode,
           icon: const Icon(Icons.code_rounded),
           onPressed: gotoGithub,
@@ -198,14 +250,18 @@ class _HomeToolBarState extends State<HomeToolBar> {
       ];
 
   IconButton _expandIndicator() => IconButton(
-        tooltip: expanded ? L10n.current.collapseOptions : L10n.current.expandOptions,
+        tooltip: expanded
+            ? L10n.current.collapseOptions
+            : L10n.current.expandOptions,
         onPressed: () {
           setState(() {
             expanded = !expanded;
           });
         },
         icon: Icon(
-          expanded ? Icons.arrow_back_ios_new_rounded : Icons.arrow_forward_ios_rounded,
+          expanded
+              ? Icons.arrow_back_ios_new_rounded
+              : Icons.arrow_forward_ios_rounded,
           size: 20,
         ),
       );

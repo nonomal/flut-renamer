@@ -1,4 +1,4 @@
-library renamer.test.rule.replace;
+library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flut_renamer/rules/rule.dart';
@@ -136,6 +136,20 @@ void main() {
     expect(newFileName, "data_example_file_name_file.file");
   });
 
+  test('limited replacement uses matches from the original name', () async {
+    final newFileName = await RuleReplace(
+      'a',
+      'ab',
+      2,
+      false,
+      true,
+      false,
+      true,
+    ).newName('a_a_a.txt');
+
+    expect(newFileName, 'ab_ab_a.txt');
+  });
+
   test('replace last', () async {
     String fileName = "file_example_file_name_file.file";
     String targetString = "file";
@@ -200,5 +214,61 @@ void main() {
     ).newName(fileName);
 
     expect(newFileName, "example_data_name.txt");
+  });
+
+  test('regex replacement preserves two-digit capture references', () async {
+    final newFileName = await RuleReplace(
+      '(a)(b)(c)(d)(e)(f)(g)(h)(i)(j)',
+      r'\10-\1',
+      1,
+      false,
+      false,
+      true,
+      true,
+    ).newName('abcdefghij.txt');
+
+    expect(newFileName, 'j-a.txt');
+  });
+
+  test('does not parse metadata tags when metadata is disabled', () async {
+    final newFileName = await RuleReplace(
+      'file',
+      '{File:Size}',
+      0,
+      false,
+      false,
+      false,
+      true,
+    ).newName('file.txt');
+
+    expect(newFileName, '{File:Size}.txt');
+  });
+
+  test('replace with a random string', () async {
+    final newFileName = await RuleReplace(
+      'file',
+      '{RandomString}',
+      0,
+      false,
+      false,
+      false,
+      true,
+    ).newName('file.txt');
+
+    expect(newFileName, matches(RegExp(r'^[a-f0-9]{8}\.txt$')));
+  });
+
+  test('replace with a custom-length random string', () async {
+    final newFileName = await RuleReplace(
+      'file',
+      '{RandomString:12}',
+      0,
+      false,
+      false,
+      false,
+      true,
+    ).newName('file.txt');
+
+    expect(newFileName, matches(RegExp(r'^[a-f0-9]{12}\.txt$')));
   });
 }

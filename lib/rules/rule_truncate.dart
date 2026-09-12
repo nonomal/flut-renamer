@@ -15,7 +15,11 @@ class RuleTruncate implements Rule {
   final bool i1toEnd;
   final bool i2toEnd;
   final bool ignoreExtension;
-  final bool keepBetween; // true: keep chars between 2 indexes, false: keep chars around them
+  final bool
+      keepBetween; // true: keep chars between 2 indexes, false: keep chars around them
+
+  @override
+  bool get requiresMetadata => false;
 
   @override
   String newName(String oldName, {FileMetadata? metadata}) {
@@ -25,13 +29,25 @@ class RuleTruncate implements Rule {
     int start = index1;
 
     if (i1toEnd) {
-      start = newName.length + start;
+      start = newName.length - start;
     }
 
     int end = index2;
 
     if (i2toEnd) {
-      end = newName.length + end;
+      end = newName.length - end;
+    }
+
+    if (start < 0) {
+      start = 0;
+    } else if (start > newName.length) {
+      start = newName.length;
+    }
+
+    if (end < 0) {
+      end = 0;
+    } else if (end > newName.length) {
+      end = newName.length;
     }
 
     if (start > end) {
@@ -63,5 +79,30 @@ class RuleTruncate implements Rule {
   }
 
   @override
-  void openDialog(BuildContext context, Function(Rule rule) onSave) => showTruncateDialog(context, onSave, this);
+  Map<String, dynamic> toMap() {
+    return {
+      'type': 'Truncate',
+      'index1': index1,
+      'index2': index2,
+      'i1toEnd': i1toEnd,
+      'i2toEnd': i2toEnd,
+      'ignoreExtension': ignoreExtension,
+      'keepBetween': keepBetween,
+    };
+  }
+
+  factory RuleTruncate.fromMap(Map<dynamic, dynamic> map) {
+    return RuleTruncate(
+      map['index1'] as int,
+      map['index2'] as int,
+      map['i1toEnd'] as bool,
+      map['i2toEnd'] as bool,
+      map['ignoreExtension'] as bool,
+      map['keepBetween'] as bool,
+    );
+  }
+
+  @override
+  void openDialog(BuildContext context, Function(Rule rule) onSave) =>
+      showTruncateDialog(context, onSave, this);
 }
